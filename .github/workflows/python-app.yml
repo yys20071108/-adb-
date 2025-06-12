@@ -1,0 +1,98 @@
+name: Build ADB Toolbox
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.9"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create assets directory
+      run: |
+        mkdir -p assets
+        echo "Creating placeholder files..."
+        
+    - name: Build application
+      run: |
+        python build_and_package.py
+        
+    - name: Test build
+      run: |
+        python test_build.py
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: adb-toolbox-windows
+        path: |
+          dist/
+          build/exe/
+          
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/*.exe
+          dist/*.zip
+          dist/checksums.txt
+        body: |
+          ## 奕奕ADB工具箱 ${{ github.ref_name }}
+          
+          ### 🎉 新版本发布
+          
+          **下载说明：**
+          - `*_Setup.exe` - 完整安装包（推荐）
+          - `*_Portable.zip` - 便携版，解压即用
+          - `checksums.txt` - 文件校验和
+          
+          ### ✨ 主要功能
+          - 🔌 设备连接管理（USB/WiFi）
+          - 🛠️ 12项基础ADB工具
+          - 🚀 高级系统功能
+          - 📁 文件传输管理
+          - 📱 应用管理工具
+          - ⚙️ 系统监控功能
+          
+          ### 📋 系统要求
+          - Windows 10/11
+          - USB调试驱动
+          - 2GB+ RAM
+          
+          ### 🚀 快速开始
+          1. 下载安装包
+          2. 以管理员身份运行
+          3. 连接Android设备
+          4. 开始使用！
+          
+          ### 🐛 问题反馈
+          如遇问题请在 [Issues](https://github.com/yys20071108/-adb-/issues) 中反馈
+          
+          ---
+          **Made with ❤️ by YYS**
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
