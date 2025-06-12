@@ -1,0 +1,4 @@
+# 奕奕ADB工具箱依赖包
+tkinter
+Pillow>=8.0.0
+requests>=2.25.0
