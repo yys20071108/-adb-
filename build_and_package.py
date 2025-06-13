@@ -22,7 +22,7 @@ class ADBToolboxBuilder:
         self.build_dir = self.project_root / "build"
         self.dist_dir = self.project_root / "dist"
         self.assets_dir = self.project_root / "assets"
-        self.version = "0.1.0"
+        self.version = "0.1.1"
         self.app_name = "YysADBToolbox"
         
         # 构建统计
@@ -33,7 +33,7 @@ class ADBToolboxBuilder:
     def print_header(self):
         """打印构建头部信息"""
         print("=" * 80)
-        print("🚀 奕奕ADB工具箱 v0.1 完整构建脚本")
+        print("🚀 奕奕ADB工具箱 v0.1.1 完整构建脚本")
         print("=" * 80)
         print(f"📁 项目目录: {self.project_root}")
         print(f"🖥️  操作系统: {platform.system()} {platform.release()}")
@@ -129,12 +129,40 @@ class ADBToolboxBuilder:
             with open(icon_path, 'wb') as f:
                 f.write(ico_data)
             print(f"✅ 图标文件已创建: {icon_path}")
+            
+        # 创建logo文件
+        logo_path = self.assets_dir / "logo.png"
+        if not logo_path.exists():
+            print("📝 创建占位logo文件...")
+            # 创建一个简单的PNG文件头
+            png_header = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00 \x00\x00\x00 \x08\x06\x00\x00\x00szz\xf4'
+            with open(logo_path, 'wb') as f:
+                f.write(png_header + b'\x00' * 100)  # 简化的PNG文件
+            print(f"✅ Logo文件已创建: {logo_path}")
+            
+        # 创建安装程序图片
+        installer_welcome = self.assets_dir / "installer-welcome.bmp"
+        installer_header = self.assets_dir / "installer-header.bmp"
+        
+        if not installer_welcome.exists():
+            print("📝 创建安装程序欢迎图片...")
+            # 创建一个简单的BMP文件头
+            bmp_header = b'BM'
+            with open(installer_welcome, 'wb') as f:
+                f.write(bmp_header + b'\x00' * 100)  # 简化的BMP文件
+            print(f"✅ 安装程序欢迎图片已创建: {installer_welcome}")
+            
+        if not installer_header.exists():
+            print("📝 创建安装程序头部图片...")
+            with open(installer_header, 'wb') as f:
+                f.write(bmp_header + b'\x00' * 100)  # 简化的BMP文件
+            print(f"✅ 安装程序头部图片已创建: {installer_header}")
         
         # 创建其他必要的资源文件
         readme_path = self.assets_dir / "README.txt"
         with open(readme_path, 'w', encoding='utf-8') as f:
             f.write("""
-奕奕ADB工具箱 v0.1
+奕奕ADB工具箱 v0.1.1
 ==================
 
 感谢使用奕奕ADB工具箱！
@@ -170,13 +198,17 @@ GitHub: https://github.com/yys20071108/-adb-
             return False
         
         # 检查关键依赖
-        critical_packages = ['cx_Freeze', 'tkinter']
+        critical_packages = ['cx_Freeze', 'tkinter', 'PIL', 'requests']
         for package in critical_packages:
             try:
                 if package == 'tkinter':
                     import tkinter
                 elif package == 'cx_Freeze':
                     import cx_Freeze
+                elif package == 'PIL':
+                    from PIL import Image
+                elif package == 'requests':
+                    import requests
                 print(f"✅ {package} 已安装")
             except ImportError:
                 print(f"❌ {package} 未安装")
@@ -204,12 +236,11 @@ build_exe_options = {{
     "packages": [
         "tkinter", "tkinter.ttk", "tkinter.messagebox", "tkinter.filedialog", "tkinter.scrolledtext",
         "subprocess", "threading", "time", "os", "sys", "json", "zipfile", "pathlib", 
-        "webbrowser", "queue", "platform"
+        "webbrowser", "queue", "platform", "re", "tempfile", "shutil", "urllib.request", "ctypes",
+        "PIL", "requests", "ttkthemes", "ttkbootstrap"
     ],
-    "excludes": [
-        "unittest", "email", "html", "http", "urllib", "xml", "pydoc", "doctest",
-        "argparse", "difflib", "inspect", "pdb", "profile", "pstats", "timeit"
-    ],
+    "excludes": ["unittest", "email", "html", "http", "urllib.error", "urllib.parse", "xml", 
+                "pydoc", "doctest", "argparse", "difflib", "inspect", "pdb", "profile", "pstats", "timeit"],
     "include_files": [
         ("assets/", "assets/"),
         ("README.md", "README.md"),
@@ -300,9 +331,14 @@ RequestExecutionLevel admin
 
 !define MUI_ABORTWARNING
 !define MUI_ICON "assets\\icon.ico"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "assets\\installer-welcome.bmp"
+!define MUI_HEADERIMAGE
+!define MUI_HEADERIMAGE_BITMAP "assets\\installer-header.bmp"
+!define MUI_HEADERIMAGE_RIGHT
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "LICENSE"
+!insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -332,6 +368,12 @@ Section "Uninstall"
     RMDir /r "$SMPROGRAMS\\${{APP_NAME}}"
     DeleteRegKey HKLM "Software\\${{APP_NAME}}"
 SectionEnd
+
+Function .onInstSuccess
+    MessageBox MB_YESNO "安装已完成。是否立即运行${{APP_NAME}}？" IDNO NoRun
+    Exec "$INSTDIR\\${{APP_EXE}}"
+    NoRun:
+FunctionEnd
 '''
         
         nsis_path = self.project_root / "installer_auto.nsi"

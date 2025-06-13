@@ -10,8 +10,14 @@ import os
 
 # 构建选项
 build_exe_options = {
-    "packages": ["tkinter", "PIL", "requests", "subprocess", "threading", "queue"],
-    "excludes": ["unittest", "email", "html", "http", "urllib", "xml"],
+    "packages": [
+        "tkinter", "tkinter.ttk", "tkinter.messagebox", "tkinter.filedialog", "tkinter.scrolledtext",
+        "subprocess", "threading", "time", "os", "sys", "json", "zipfile", "pathlib", 
+        "webbrowser", "queue", "platform", "re", "tempfile", "shutil", "urllib.request", "ctypes",
+        "PIL", "requests", "ttkthemes", "ttkbootstrap"
+    ],
+    "excludes": ["unittest", "email", "html", "http", "urllib.error", "urllib.parse", "xml", 
+                "pydoc", "doctest", "argparse", "difflib", "inspect", "pdb", "profile", "pstats", "timeit"],
     "include_files": [
         ("assets/", "assets/"),
         ("README.md", "README.md"),
@@ -41,7 +47,7 @@ executables = [
 # 设置配置
 setup(
     name="YysADBToolbox",
-    version="0.1",
+    version="0.1.1",
     description="奕奕ADB工具箱 - 专业的Android调试工具",
     author="YYS",
     author_email="yys20071108@example.com",

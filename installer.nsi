@@ -2,7 +2,7 @@
 ; 使用NSIS编译器生成安装程序
 
 !define APP_NAME "奕奕ADB工具箱"
-!define APP_VERSION "0.1"
+!define APP_VERSION "0.1.1"
 !define APP_PUBLISHER "YYS"
 !define APP_URL "https://github.com/yys20071108/-adb-"
 !define APP_EXE "YysADBToolbox.exe"
@@ -21,6 +21,10 @@ RequestExecutionLevel admin
 !define MUI_ABORTWARNING
 !define MUI_ICON "assets\icon.ico"
 !define MUI_UNICON "assets\icon.ico"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "assets\installer-welcome.bmp"
+!define MUI_HEADERIMAGE
+!define MUI_HEADERIMAGE_BITMAP "assets\installer-header.bmp"
+!define MUI_HEADERIMAGE_RIGHT
 
 ; 安装页面
 !insertmacro MUI_PAGE_WELCOME
@@ -40,7 +44,7 @@ RequestExecutionLevel admin
 !insertmacro MUI_LANGUAGE "SimpChinese"
 
 ; 版本信息
-VIProductVersion "0.1.0.0"
+VIProductVersion "0.1.1.0"
 VIAddVersionKey /LANG=${LANG_SIMPCHINESE} "ProductName" "${APP_NAME}"
 VIAddVersionKey /LANG=${LANG_SIMPCHINESE} "Comments" "专业的Android调试工具"
 VIAddVersionKey /LANG=${LANG_SIMPCHINESE} "CompanyName" "${APP_PUBLISHER}"
@@ -88,15 +92,33 @@ Section "开始菜单快捷方式" SecStartMenu
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\卸载${APP_NAME}.lnk" "$INSTDIR\Uninstall.exe"
 SectionEnd
 
+Section "安装ADB驱动" SecDriver
+    ; 创建临时目录
+    CreateDirectory "$TEMP\ADBDriver"
+    SetOutPath "$TEMP\ADBDriver"
+    
+    ; 解压驱动安装程序
+    File "drivers\android_winusb.inf"
+    File "drivers\usb_driver_installer.exe"
+    
+    ; 运行驱动安装程序
+    ExecWait '"$TEMP\ADBDriver\usb_driver_installer.exe" /S'
+    
+    ; 清理临时文件
+    RMDir /r "$TEMP\ADBDriver"
+SectionEnd
+
 ; 组件描述
 LangString DESC_SecMain ${LANG_SIMPCHINESE} "安装${APP_NAME}主程序文件"
 LangString DESC_SecDesktop ${LANG_SIMPCHINESE} "在桌面创建快捷方式"
 LangString DESC_SecStartMenu ${LANG_SIMPCHINESE} "在开始菜单创建快捷方式"
+LangString DESC_SecDriver ${LANG_SIMPCHINESE} "安装Android设备USB驱动"
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
     !insertmacro MUI_DESCRIPTION_TEXT ${SecMain} $(DESC_SecMain)
     !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} $(DESC_SecDesktop)
     !insertmacro MUI_DESCRIPTION_TEXT ${SecStartMenu} $(DESC_SecStartMenu)
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecDriver} $(DESC_SecDriver)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ; 卸载程序
@@ -112,3 +134,10 @@ Section "Uninstall"
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
     DeleteRegKey HKLM "Software\${APP_NAME}"
 SectionEnd
+
+; 安装完成后运行程序
+Function .onInstSuccess
+    MessageBox MB_YESNO "安装已完成。是否立即运行${APP_NAME}？" IDNO NoRun
+    Exec "$INSTDIR\${APP_EXE}"
+    NoRun:
+FunctionEnd

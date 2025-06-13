@@ -1,6 +1,8 @@
 # 奕奕ADB工具箱依赖包
 # GUI相关
 tkinter; sys_platform == "linux"
+ttkthemes>=3.2.0
+ttkbootstrap>=1.10.0
 # 图像处理
 Pillow>=8.0.0
 # 网络请求

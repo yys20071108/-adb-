@@ -32,7 +32,7 @@ python -m pip install --upgrade pip
 
 :: 安装构建依赖
 echo 📦 安装构建依赖...
-python -m pip install cx_Freeze Pillow requests psutil
+python -m pip install cx_Freeze Pillow requests ttkthemes ttkbootstrap psutil
 
 :: 执行构建
 echo.
