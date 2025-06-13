@@ -14,12 +14,27 @@ import time
 import os
 import sys
 import json
-import requests
 import zipfile
 from pathlib import Path
 import webbrowser
-from PIL import Image, ImageTk
 import queue
+import platform
+
+# 修复PIL导入问题
+try:
+    from PIL import Image, ImageTk
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    print("警告: PIL/Pillow未安装，图标功能将被禁用")
+
+# 修复requests导入问题
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+    print("警告: requests未安装，网络功能将被禁用")
 
 class ADBToolbox:
     def __init__(self):
@@ -35,13 +50,21 @@ class ADBToolbox:
         self.root.geometry("1200x800")
         self.root.minsize(1000, 600)
         
-        # 设置图标
+        # 设置图标 - 添加更好的错误处理
         try:
-            icon_path = self.resource_path("assets/icon.ico")
+            if getattr(sys, 'frozen', False):
+                # 打包后的环境
+                icon_path = self.resource_path("icon.ico")
+            else:
+                # 开发环境
+                icon_path = "assets/icon.ico"
+            
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
-        except:
-            pass
+            else:
+                print(f"图标文件未找到: {icon_path}")
+        except Exception as e:
+            print(f"设置图标失败: {e}")
             
         # 设置主题色
         self.colors = {
@@ -57,10 +80,18 @@ class ADBToolbox:
     def resource_path(self, relative_path):
         """获取资源文件路径"""
         try:
+            # PyInstaller创建的临时文件夹
             base_path = sys._MEIPASS
-        except Exception:
+        except AttributeError:
+            # 开发环境
             base_path = os.path.abspath(".")
-        return os.path.join(base_path, relative_path)
+    
+        full_path = os.path.join(base_path, relative_path)
+        if os.path.exists(full_path):
+            return full_path
+        else:
+            # 如果文件不存在，返回当前目录下的路径
+            return os.path.join(os.path.abspath("."), relative_path)
         
     def setup_variables(self):
         """初始化变量"""
@@ -576,19 +607,29 @@ class ADBToolbox:
     def check_environment(self):
         """检查ADB环境"""
         def check():
-            # 检查ADB
-            try:
-                result = subprocess.run([self.adb_path, 'version'], 
-                                      capture_output=True, text=True, timeout=5)
-                if result.returncode == 0:
-                    self.env_status['adb_status'].config(text="已安装", foreground="green")
-                    self.log_message("ADB环境检测成功", "SUCCESS")
-                else:
-                    self.env_status['adb_status'].config(text="未安装", foreground="red")
-                    self.log_message("ADB环境检测失败", "ERROR")
-            except:
+            # 检查ADB - 修复Windows路径问题
+            adb_commands = ['adb', 'adb.exe']
+            if platform.system() == "Windows":
+                adb_commands.extend(['platform-tools\\adb.exe', '.\\adb.exe'])
+        
+            adb_found = False
+            for adb_cmd in adb_commands:
+                try:
+                    result = subprocess.run([adb_cmd, 'version'], 
+                                          capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0:
+                        self.adb_path = adb_cmd
+                        adb_found = True
+                        break
+                except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+                    continue
+                
+            if adb_found:
+                self.env_status['adb_status'].config(text="已安装", foreground="green")
+                self.log_message("ADB环境检测成功", "SUCCESS")
+            else:
                 self.env_status['adb_status'].config(text="未安装", foreground="red")
-                self.log_message("ADB环境检测失败", "ERROR")
+                self.log_message("ADB环境检测失败，请安装ADB工具", "ERROR")
                 
             # 检查Platform-tools
             try:
@@ -698,16 +739,24 @@ class ADBToolbox:
                 self.log_message(f"执行命令: {command}")
                 if description:
                     self.log_message(f"描述: {description}")
-                    
-                # 分割命令
+                
+                # 分割命令并处理路径
                 cmd_parts = command.split()
                 if cmd_parts[0] != 'adb':
                     cmd_parts = [self.adb_path] + cmd_parts[1:]
                 else:
                     cmd_parts[0] = self.adb_path
-                    
-                result = subprocess.run(cmd_parts, capture_output=True, text=True, timeout=30)
                 
+                # 修复编码问题
+                result = subprocess.run(
+                    cmd_parts, 
+                    capture_output=True, 
+                    text=True, 
+                    timeout=30,
+                    encoding='utf-8',
+                    errors='ignore'  # 忽略编码错误
+                )
+            
                 if result.returncode == 0:
                     if result.stdout:
                         self.log_message("命令执行成功:", "SUCCESS")
@@ -718,13 +767,13 @@ class ADBToolbox:
                     self.log_message("命令执行失败:", "ERROR")
                     if result.stderr:
                         self.log_message(result.stderr, "ERROR")
-                        
+                    
             except subprocess.TimeoutExpired:
                 self.log_message("命令执行超时", "ERROR")
             except Exception as e:
                 self.log_message(f"命令执行错误: {str(e)}", "ERROR")
-                
-        threading.Thread(target=execute, daemon=True).start()
+            
+    threading.Thread(target=execute, daemon=True).start()
         
     def execute_custom_command(self):
         """执行自定义命令"""

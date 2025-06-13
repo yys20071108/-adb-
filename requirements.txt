@@ -1,4 +1,11 @@
 # 奕奕ADB工具箱依赖包
-tkinter
+# GUI相关
+tkinter; sys_platform == "linux"
+# 图像处理
 Pillow>=8.0.0
+# 网络请求
 requests>=2.25.0
+# 构建工具
+cx_Freeze>=6.0
+# 系统工具
+psutil>=5.8.0
