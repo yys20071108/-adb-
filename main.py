@@ -2697,7 +2697,7 @@ class ADBToolbox:
 
 开发者: YYS
 GitHub: https://github.com/yys20071108/-adb-
-邮箱: yys20071108@example.com
+邮箱: 1450788363@qq.com
 
 功能特性:
 • 设备连接管理

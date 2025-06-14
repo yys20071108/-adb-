@@ -47,7 +47,7 @@ executables = [
 # 设置配置
 setup(
     name="YysADBToolbox",
-    version="0.1.1",
+    version="1.0.2",
     description="奕奕ADB工具箱 - 专业的Android调试工具",
     author="YYS",
     author_email="yys20071108@example.com",
